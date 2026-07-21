@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  NovoMCP Word add-in — Office Add-in manifest (SIDELOAD BUILD).
+
+  Sideload flow: run `npm run start` locally. office-addin-debugging
+  serves the taskpane from https://localhost:3000/ (self-signed cert
+  via office-addin-dev-certs) and registers this manifest with Word.
+
+  Differs from the production manifest (addin.novomcp.com CDN, Office
+  Store submission) in these ways:
+    - GUID is a fresh sideload-only ID so it can coexist with the
+      production add-in when both are installed
+    - DisplayName suffixed with "(Sideload)" for clarity
+    - AppDomains includes http://localhost / http://127.0.0.1 so a
+      local NovoMCP engine at :8018 is reachable from the taskpane
+    - SourceLocation + Image + Url DefaultValues point at
+      https://localhost:3000/ (the dev-server the sideload flow uses)
+-->
+<OfficeApp
+    xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0"
+    xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
+    xsi:type="TaskPaneApp">
+
+  <Id>a1b2c3d4-e5f6-4789-9abc-def012345678</Id>
+  <Version>1.0.0.0</Version>
+  <ProviderName>NovoMCP</ProviderName>
+  <DefaultLocale>en-US</DefaultLocale>
+  <DisplayName DefaultValue="NovoMCP (Sideload)" />
+  <Description DefaultValue="Molecular intelligence for Word — sideload build. Configurable engine URL (defaults to https://api.novomcp.com; point at http://localhost:8018 for local OSS use)." />
+  <IconUrl DefaultValue="https://localhost:3000/assets/icon-32.png" />
+  <HighResolutionIconUrl DefaultValue="https://localhost:3000/assets/icon-64.png" />
+  <SupportUrl DefaultValue="https://github.com/NovoMCP/novomcp-word-sideload/issues" />
+
+  <AppDomains>
+    <AppDomain>https://api.novomcp.com</AppDomain>
+    <AppDomain>https://novomcp.com</AppDomain>
+    <AppDomain>https://app.novomcp.com</AppDomain>
+    <AppDomain>http://localhost</AppDomain>
+    <AppDomain>http://127.0.0.1</AppDomain>
+    <AppDomain>https://localhost</AppDomain>
+  </AppDomains>
+
+  <Hosts>
+    <Host Name="Document" />
+  </Hosts>
+
+  <DefaultSettings>
+    <SourceLocation DefaultValue="https://localhost:3000/taskpane.html" />
+  </DefaultSettings>
+
+  <Permissions>ReadWriteDocument</Permissions>
+
+  <VersionOverrides xmlns="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="VersionOverridesV1_0">
+    <Hosts>
+      <Host xsi:type="Document">
+        <DesktopFormFactor>
+          <GetStarted>
+            <Title resid="GetStarted.Title" />
+            <Description resid="GetStarted.Description" />
+            <LearnMoreUrl resid="GetStarted.LearnMoreUrl" />
+          </GetStarted>
+          <FunctionFile resid="Commands.Url" />
+          <ExtensionPoint xsi:type="PrimaryCommandSurface">
+            <OfficeTab id="TabHome">
+              <Group id="NovoMCP.Group">
+                <Label resid="NovoMCP.GroupLabel" />
+                <Icon>
+                  <bt:Image size="16" resid="Icon.16x16" />
+                  <bt:Image size="32" resid="Icon.32x32" />
+                  <bt:Image size="80" resid="Icon.80x80" />
+                </Icon>
+                <Control xsi:type="Button" id="NovoMCP.OpenTaskpane">
+                  <Label resid="OpenTaskpane.Label" />
+                  <Supertip>
+                    <Title resid="OpenTaskpane.Label" />
+                    <Description resid="OpenTaskpane.Tooltip" />
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16x16" />
+                    <bt:Image size="32" resid="Icon.32x32" />
+                    <bt:Image size="80" resid="Icon.80x80" />
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <TaskpaneId>NovoMCP.Taskpane</TaskpaneId>
+                    <SourceLocation resid="Taskpane.Url" />
+                  </Action>
+                </Control>
+                <Control xsi:type="Button" id="NovoMCP.ScanDocument">
+                  <Label resid="ScanDocument.Label" />
+                  <Supertip>
+                    <Title resid="ScanDocument.Label" />
+                    <Description resid="ScanDocument.Tooltip" />
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16x16" />
+                    <bt:Image size="32" resid="Icon.32x32" />
+                    <bt:Image size="80" resid="Icon.80x80" />
+                  </Icon>
+                  <Action xsi:type="ExecuteFunction">
+                    <FunctionName>scanDocument</FunctionName>
+                  </Action>
+                </Control>
+              </Group>
+            </OfficeTab>
+          </ExtensionPoint>
+        </DesktopFormFactor>
+      </Host>
+    </Hosts>
+
+    <Resources>
+      <bt:Images>
+        <bt:Image id="Icon.16x16" DefaultValue="https://localhost:3000/assets/icon-16.png" />
+        <bt:Image id="Icon.32x32" DefaultValue="https://localhost:3000/assets/icon-32.png" />
+        <bt:Image id="Icon.80x80" DefaultValue="https://localhost:3000/assets/icon-80.png" />
+      </bt:Images>
+      <bt:Urls>
+        <bt:Url id="GetStarted.LearnMoreUrl" DefaultValue="https://github.com/NovoMCP/novomcp-word-sideload" />
+        <bt:Url id="Commands.Url" DefaultValue="https://localhost:3000/commands.html" />
+        <bt:Url id="Taskpane.Url" DefaultValue="https://localhost:3000/taskpane.html" />
+      </bt:Urls>
+      <bt:ShortStrings>
+        <bt:String id="GetStarted.Title" DefaultValue="NovoMCP for Word (Sideload)" />
+        <bt:String id="NovoMCP.GroupLabel" DefaultValue="NovoMCP" />
+        <bt:String id="OpenTaskpane.Label" DefaultValue="Open NovoMCP" />
+        <bt:String id="ScanDocument.Label" DefaultValue="Scan Document" />
+      </bt:ShortStrings>
+      <bt:LongStrings>
+        <bt:String id="GetStarted.Description" DefaultValue="Hover any SMILES in your manuscript to see properties, ADMET, and compliance. Continue your research in any AI assistant via the funnel ID." />
+        <bt:String id="OpenTaskpane.Tooltip" DefaultValue="Open the NovoMCP side panel to analyze the selected SMILES." />
+        <bt:String id="ScanDocument.Tooltip" DefaultValue="Find every SMILES in this document and run ADMET + compliance checks." />
+      </bt:LongStrings>
+    </Resources>
+  </VersionOverrides>
+</OfficeApp>

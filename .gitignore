@@ -1,0 +1,18 @@
+node_modules/
+dist/
+.DS_Store
+*.log
+.env
+.env.local
+.env.*.local
+
+# Office Add-in dev certs (regenerated per machine)
+.office-addin-dev-certs/
+
+# Submission artifacts
+*.zip
+appsource-package*.zip
+
+# Editor
+.vscode/
+.idea/

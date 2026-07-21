@@ -1,0 +1,27 @@
+{
+  "name": "novomcp-word-sideload",
+  "version": "0.1.0",
+  "description": "NovoMCP Word add-in (sideload) — configurable engine URL, manifest-sideload distribution. Drop molecular intelligence into Word documents; ADMET / compliance / compute lookups for SMILES in your manuscript.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "npm run build:manifest:dev && vite",
+    "build": "tsc --noEmit && vite build && npm run build:manifest",
+    "build:manifest": "node scripts/build-manifest.mjs",
+    "build:manifest:dev": "node scripts/build-manifest.mjs --dev",
+    "typecheck": "tsc --noEmit",
+    "validate-manifest": "office-addin-manifest validate manifest.xml",
+    "prestart": "node scripts/clean-sideload.mjs",
+    "start": "office-addin-debugging start dist/manifest.xml",
+    "stop": "office-addin-debugging stop dist/manifest.xml",
+    "package": "npm run build && cd dist && zip -r ../novomcp-word-sideload-package.zip ."
+  },
+  "devDependencies": {
+    "@types/office-js": "^1.0.421",
+    "office-addin-debugging": "^6.1.0",
+    "office-addin-dev-certs": "^2.0.7",
+    "office-addin-manifest": "^2.1.3",
+    "typescript": "^5.4.5",
+    "vite": "^5.2.11"
+  }
+}

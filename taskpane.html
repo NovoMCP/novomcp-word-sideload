@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>NovoMCP</title>
+    <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js" type="text/javascript"></script>
+    <link rel="stylesheet" href="./src/taskpane/taskpane.css" />
+  </head>
+  <body>
+    <main id="app">
+      <header class="brand">
+        <img src="/icon-32.png" alt="" class="logo" width="28" height="28" />
+        <div class="brand-text">
+          <h1>NovoMCP</h1>
+          <p class="tagline">Drug discovery &amp; materials science.</p>
+        </div>
+      </header>
+
+      <section id="state-loading" hidden>
+        <p class="muted">Initializing…</p>
+      </section>
+
+      <section id="state-onboarding" hidden>
+        <h2>Connect to your engine</h2>
+        <p class="muted">
+          Point at a local NovoMCP engine or a self-hosted deployment. See <a href="https://github.com/novomcp/novomcp" target="_blank" rel="noopener">novomcp/novomcp</a> to run one.
+        </p>
+        <form id="onboarding-form">
+          <label for="api-base">Engine URL</label>
+          <input id="api-base" type="url" autocomplete="off" spellcheck="false" value="http://localhost:8018" placeholder="http://localhost:8018" />
+          <small class="muted">Defaults to <code>http://localhost:8018</code>. Use your engine's URL if self-hosted, or <code>https://api.novomcp.com</code> for the hosted service.</small>
+
+          <label for="novo-key">API key <span class="muted">(optional for local engines)</span></label>
+          <input id="novo-key" type="password" autocomplete="off" spellcheck="false" placeholder="Leave blank for local engine" />
+          <small class="muted">Only needed when pointing at a hosted engine that requires authentication. Local single-user mode accepts any value.</small>
+
+          <button type="submit" id="connect-btn">Connect</button>
+          <p id="error-msg" class="error" role="alert" hidden></p>
+        </form>
+      </section>
+
+      <section id="state-connected" hidden>
+        <dl class="user-info-compact">
+          <dt>Engine</dt><dd id="user-engine"></dd>
+          <dt>Mode</dt><dd id="user-mode"></dd>
+        </dl>
+
+        <details id="selection-section" class="selection-details">
+          <summary>
+            <span id="selection-summary-label">Selection</span>
+            <span id="selection-summary-count" class="muted"></span>
+          </summary>
+          <div id="selection-empty" class="empty-hint">
+            <p class="muted" style="font-size: 12px;">
+              Highlight a SMILES in your document — it'll appear here as a clickable candidate.
+            </p>
+          </div>
+          <ul id="selection-candidates" class="candidate-list" hidden></ul>
+          <div id="selection-none" class="muted-block" hidden>
+            <p class="muted" style="font-size: 12px;">No SMILES detected in the current selection.</p>
+          </div>
+        </details>
+
+        <div class="scan-bar">
+          <button type="button" id="scan-btn" class="secondary scan-btn">Scan compound tables in document</button>
+        </div>
+
+        <section id="scan-block" hidden>
+          <div class="scan-header">
+            <h3 id="scan-title">Compound table scan</h3>
+            <button type="button" id="scan-close" class="link-button" aria-label="Close scan">✕</button>
+          </div>
+
+          <div id="scan-progress" class="muted-block" hidden>
+            <p id="scan-progress-text" class="muted" style="font-size: 12px;"></p>
+            <div class="progress-bar"><div class="progress-fill" id="scan-progress-fill"></div></div>
+          </div>
+
+          <div id="scan-summary" class="scan-summary" hidden></div>
+
+          <div id="scan-tables"></div>
+
+          <div id="scan-actions" class="scan-actions" hidden>
+            <button type="button" id="scan-apply-btn">Insert margin comments for discrepancies</button>
+            <p class="muted" style="font-size: 11px; margin-top: 6px;">
+              Comments appear as Word margin annotations the author can accept or reject.
+            </p>
+          </div>
+
+          <div id="scan-error" class="error-block" hidden role="alert"></div>
+        </section>
+
+        <div id="active-block" hidden>
+          <div class="smiles-block" id="active-smiles"></div>
+
+          <div class="tabs" role="tablist">
+            <button class="tab" data-tab="profile" role="tab" aria-selected="true">Profile</button>
+            <button class="tab" data-tab="admet" role="tab" aria-selected="false">ADMET</button>
+            <button class="tab" data-tab="compliance" role="tab" aria-selected="false">Compliance</button>
+            <button class="tab" data-tab="similar" role="tab" aria-selected="false">Similar</button>
+            <button class="tab" data-tab="advanced" role="tab" aria-selected="false">Advanced<span class="lock" id="advanced-lock" hidden>🔒</span></button>
+          </div>
+
+          <div class="tab-panel active" id="panel-profile" role="tabpanel">
+            <div class="tab-actions">
+              <button type="button" class="insert-table-btn" data-insert="profile">Insert as Word table</button>
+            </div>
+            <dl class="props-grid" id="profile-properties"></dl>
+          </div>
+
+          <div class="tab-panel" id="panel-admet" role="tabpanel">
+            <div class="tab-actions">
+              <button type="button" class="insert-table-btn" data-insert="admet" disabled>Insert as Word table</button>
+            </div>
+            <div id="profile-admet"></div>
+          </div>
+
+          <div class="tab-panel" id="panel-compliance" role="tabpanel">
+            <div class="tab-actions">
+              <button type="button" class="insert-table-btn" data-insert="compliance" disabled>Insert as Word table</button>
+            </div>
+            <div id="profile-compliance"></div>
+          </div>
+
+          <div class="tab-panel" id="panel-similar" role="tabpanel">
+            <div class="similar-controls">
+              <button type="button" id="similar-run">Search neighbors</button>
+              <span class="muted" style="font-size: 11px;">Search 100M+ molecules · 5 credits</span>
+            </div>
+            <div class="similar-thresholds">
+              Threshold:
+              <button type="button" data-similar-threshold="0.7" class="similar-thresh active">0.7</button>
+              <button type="button" data-similar-threshold="0.5" class="similar-thresh">0.5</button>
+              <button type="button" data-similar-threshold="0.3" class="similar-thresh">0.3</button>
+            </div>
+            <div class="tab-actions">
+              <button type="button" class="insert-table-btn" data-insert="similar" disabled>Insert as Word table</button>
+            </div>
+            <div id="similar-results"></div>
+          </div>
+
+          <div class="tab-panel" id="panel-advanced" role="tabpanel">
+            <div id="advanced-locked" class="gate-locked" hidden>
+              <div class="display">Compute services not configured</div>
+              <p>Configure <code>NOVOMCP_QM_URL</code>, <code>NOVOMCP_PROPERTIES_URL</code>, and related compute service URLs on your engine to enable pKa, solubility, BDE, and frontier-orbital predictions. See <a href="https://github.com/novomcp/novomcp/tree/main/docs/deploying-services" target="_blank" rel="noopener">docs/deploying-services</a>.</p>
+            </div>
+            <div id="advanced-tools" hidden>
+              <p class="muted" style="font-size: 11px; margin-bottom: 4px;">Sync compute against the current molecule. Each call lands on this funnel.</p>
+              <div class="compute-card" data-tool="predict_pka">
+                <div class="head"><span class="name">pKa</span><button data-action="run">Run</button></div>
+                <div class="body" data-result>Click run to predict ionization sites and pKa values.</div>
+              </div>
+              <div class="compute-card" data-tool="predict_solubility">
+                <div class="head"><span class="name">Solubility</span><button data-action="run">Run</button></div>
+                <div class="body" data-result>Aqueous solubility (logS) with category labels.</div>
+              </div>
+              <div class="compute-card" data-tool="predict_bde">
+                <div class="head"><span class="name">Bond dissociation</span><button data-action="run">Run</button></div>
+                <div class="body" data-result>BDE per bond — flag the weakest links.</div>
+              </div>
+              <div class="compute-card" data-tool="predict_frontier_orbitals">
+                <div class="head"><span class="name">Frontier orbitals</span><button data-action="run">Run</button></div>
+                <div class="body" data-result>HOMO, LUMO, and gap (eV).</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="meta" id="profile-meta"></div>
+
+          <div class="cross-surface" id="cross-surface" hidden>
+            <div class="label">This funnel across surfaces</div>
+            <a id="cta-dashboard" href="#" target="_blank" rel="noopener">
+              <span>Preview audit log on app.novomcp.com</span>
+              <span class="arrow">→</span>
+            </a>
+            <button id="cta-ai-assistant" type="button">
+              <span id="cta-ai-label">Copy prompt to continue in any AI assistant</span>
+              <span class="arrow" id="cta-ai-arrow">⧉</span>
+            </button>
+            <div class="funnel-id" id="cta-funnel-id"></div>
+          </div>
+        </div>
+
+        <div id="loading-block" class="loading-state" hidden>
+          <div class="loading-skeleton"></div>
+          <div class="loading-skeleton" style="width: 75%;"></div>
+          <div class="loading-skeleton" style="width: 60%;"></div>
+        </div>
+
+        <div id="error-block" class="error-block" hidden role="alert"></div>
+
+        <div id="empty-active" class="empty-hint">
+          <p class="muted" style="font-size: 12px;">
+            Highlight any SMILES in your document and click it from the Selection list above to load Profile / ADMET / Compliance / Similar / Advanced.
+          </p>
+        </div>
+
+        <div class="actions">
+          <button id="signout-btn" type="button" class="secondary">Disconnect</button>
+        </div>
+      </section>
+
+      <footer>
+        <a href="https://github.com/novomcp/novomcp" target="_blank" rel="noopener">Engine</a>
+        <span aria-hidden="true">·</span>
+        <a href="https://github.com/novomcp/novomcp-word-sideload" target="_blank" rel="noopener">Add-in source</a>
+        <span aria-hidden="true">·</span>
+        <a href="https://github.com/novomcp/novomcp/tree/main/docs" target="_blank" rel="noopener">Docs</a>
+      </footer>
+    </main>
+
+    <script type="module" src="./src/taskpane/taskpane.ts"></script>
+  </body>
+</html>
