@@ -24,7 +24,7 @@ import { readSelection, onSelectionChange, insertTableAtSelection, type Insertab
 import { readAllTables, insertCellComment, type ParsedTable } from '../lib/tables';
 import { detectSchema, findDiscrepancies, extractServerValues, type Discrepancy, type TableSchema } from '../lib/validator';
 import { normalize as normalizeAdmet, classificationColor, type AdmetCategory } from '../lib/admet';
-import { getCurrentFunnelId, dashboardUrl, aiHandoffPrompt } from '../lib/funnel';
+import { getCurrentFunnelId, aiHandoffPrompt } from '../lib/funnel';
 import type { NovoUser, ApiResponse, MoleculeProfile } from '../types';
 
 const $ = <T extends HTMLElement>(id: string): T => {
@@ -128,14 +128,9 @@ async function handleConnect(event: Event): Promise<void> {
   }
 
   const local = isLocalEngineUrl(apiBase);
-  if (!local && novoKey && !novoKey.startsWith('nmcp_')) {
-    showError('For hosted engines the API key must start with nmcp_. Get one at app.novomcp.com/keys, or use a local engine URL.');
-    return;
-  }
-  if (!local && !novoKey) {
-    showError('Hosted engines require an API key. Add one, or point at a local engine URL.');
-    return;
-  }
+  // The API key is optional. A self-hosted engine accepts any bearer token;
+  // supply a key only if you point at an engine that requires auth (e.g. a
+  // FAVES service).
 
   const btn = $<HTMLButtonElement>('connect-btn');
   btn.disabled = true; btn.textContent = 'Connecting…';
@@ -332,13 +327,9 @@ function renderProfile(smiles: string, response: ApiResponse<MoleculeProfile>): 
   if (document.getElementById('panel-admet')?.classList.contains('active')) void ensureAdmetLoaded(smiles);
   if (document.getElementById('panel-compliance')?.classList.contains('active')) void ensureComplianceLoaded(smiles);
 
-  const cost = response.usage?.credits ?? 0;
-  const remaining = response.usage?.credits_remaining;
   const meta = $<HTMLElement>('profile-meta');
   meta.innerHTML = '';
   meta.appendChild(metaPill(p.in_database ? 'cached profile' : 'computed on demand'));
-  meta.appendChild(metaPill(cost === 0 ? 'free lookup' : `${cost} credit${cost === 1 ? '' : 's'}`));
-  if (typeof remaining === 'number') meta.appendChild(metaPill(`${Math.floor(remaining).toLocaleString()} credits left`));
 
   void renderCrossSurface(smiles);
   $<HTMLElement>('active-block').hidden = false;
@@ -814,8 +805,8 @@ function friendlyComputeError(tool: ComputeTool, raw: string): string {
   }
   if (status && status >= 500) return `${label} service is temporarily unavailable. Try again in a moment.`;
   if (status === 422 || status === 400) return `${label} couldn't process this molecule. Try a different scaffold.`;
-  if (status === 401) return `${label} requires a valid Compute (ncmcp_) key. Add or update it from sign-in.`;
-  if (status === 402) return `${label} needs more credits.`;
+  if (status === 401) return `${label} requires authentication — add an API key if your engine needs one.`;
+  if (status === 402) return `${label} isn't available on this engine — wire the compute service (see docs/deploying-services).`;
   if (status === 429) return `${label} is rate-limited right now. Try again shortly.`;
   const trimmed = raw.length > 140 ? raw.slice(0, 140) + '…' : raw;
   return `${label}: ${trimmed}`;
@@ -898,7 +889,7 @@ async function renderCrossSurface(smiles: string): Promise<void> {
   if (!funnelId) { wrap.hidden = true; return; }
   wrap.hidden = false;
 
-  $<HTMLAnchorElement>('cta-dashboard').href = dashboardUrl(funnelId);
+  $<HTMLAnchorElement>('cta-dashboard').hidden = true; // hosted dashboard retired; OSS uses the funnel_id / AI handoff below
 
   const aiBtn = $<HTMLButtonElement>('cta-ai-assistant');
   aiBtn.onclick = async () => {
