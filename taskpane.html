@@ -29,7 +29,7 @@
         <form id="onboarding-form">
           <label for="api-base">Engine URL</label>
           <input id="api-base" type="url" autocomplete="off" spellcheck="false" value="http://localhost:8018" placeholder="http://localhost:8018" />
-          <small class="muted">Defaults to <code>http://localhost:8018</code>. Use your engine's URL if self-hosted, or <code>https://api.novomcp.com</code> for the hosted service.</small>
+          <small class="muted">Defaults to <code>http://localhost:8018</code>. Point at your own engine's URL if you self-host elsewhere.</small>
 
           <label for="novo-key">API key <span class="muted">(optional for local engines)</span></label>
           <input id="novo-key" type="password" autocomplete="off" spellcheck="false" placeholder="Leave blank for local engine" />
@@ -126,7 +126,7 @@
           <div class="tab-panel" id="panel-similar" role="tabpanel">
             <div class="similar-controls">
               <button type="button" id="similar-run">Search neighbors</button>
-              <span class="muted" style="font-size: 11px;">Search 100M+ molecules · 5 credits</span>
+              <span class="muted" style="font-size: 11px;">Search structurally similar molecules</span>
             </div>
             <div class="similar-thresholds">
               Threshold:
@@ -171,7 +171,7 @@
           <div class="cross-surface" id="cross-surface" hidden>
             <div class="label">This funnel across surfaces</div>
             <a id="cta-dashboard" href="#" target="_blank" rel="noopener">
-              <span>Preview audit log on app.novomcp.com</span>
+              <span>Open the funnel audit on your engine</span>
               <span class="arrow">→</span>
             </a>
             <button id="cta-ai-assistant" type="button">

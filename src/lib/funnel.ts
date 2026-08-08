@@ -24,9 +24,6 @@ export function clearFunnelId(): void {
 }
 
 /** Dashboard URL with the funnel pre-selected and auto-expanded. */
-export function dashboardUrl(funnelId: string): string {
-  return `https://app.novomcp.com/audit/pipelines?funnel_id=${encodeURIComponent(funnelId)}`;
-}
 
 /**
  * Continue-in-AI-assistant prompt template. Copy-to-clipboard handoff
