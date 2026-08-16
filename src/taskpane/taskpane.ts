@@ -130,7 +130,7 @@ async function handleConnect(event: Event): Promise<void> {
   const local = isLocalEngineUrl(apiBase);
   // The API key is optional. A self-hosted engine accepts any bearer token;
   // supply a key only if you point at an engine that requires auth (e.g. a
-  // FAVES service).
+  // compliance service).
 
   const btn = $<HTMLButtonElement>('connect-btn');
   btn.disabled = true; btn.textContent = 'Connecting…';
@@ -488,8 +488,8 @@ function paintCompliance(result: Record<string, unknown>): void {
   pushFlag(baseRows, 'EU REACH banned', baseCompliance['is_eu_reach_banned']);
   pushFlag(baseRows, 'Scaffold match', baseCompliance['is_scaffold_match']);
   pushFlag(baseRows, 'Whitelisted', baseCompliance['is_whitelisted'], 'ok');
-  if (typeof baseCompliance['faves_flag_count'] === 'number' && (baseCompliance['faves_flag_count'] as number) > 0) {
-    baseRows.push(['Flag count', `<span class="badge warn">${baseCompliance['faves_flag_count']}</span>`]);
+  if (typeof baseCompliance['compliance_flag_count'] === 'number' && (baseCompliance['compliance_flag_count'] as number) > 0) {
+    baseRows.push(['Flag count', `<span class="badge warn">${baseCompliance['compliance_flag_count']}</span>`]);
   }
   if (baseRows.length > 0) appendSection(el, 'Regulatory flags', () => {
     const dl = document.createElement('dl');
@@ -529,13 +529,13 @@ function paintCompliance(result: Record<string, unknown>): void {
   const dims = ctxCompliance['dimensions'] as Record<string, unknown> | undefined;
   if (dims && Object.keys(dims).length > 0) appendSection(el, 'Dimensions', () => {
     const wrap = document.createElement('div');
-    wrap.className = 'faves-dims';
+    wrap.className = 'compliance-dims';
     for (const [name, dim] of Object.entries(dims)) {
       const status = String((dim as Record<string, unknown>)?.['status'] ?? '');
       const cls = status === 'PASS' ? 'ok' : status === 'WARN' ? 'warn' : status === 'FAIL' ? 'err' : '';
       const dimEl = document.createElement('div');
-      dimEl.className = 'faves-dim';
-      dimEl.innerHTML = `<div class="faves-name">${escapeText(humanizeKey(name))}</div><span class="badge ${cls}">${escapeText(status || '—')}</span>`;
+      dimEl.className = 'compliance-dim';
+      dimEl.innerHTML = `<div class="compliance-name">${escapeText(humanizeKey(name))}</div><span class="badge ${cls}">${escapeText(status || '—')}</span>`;
       wrap.appendChild(dimEl);
     }
     return wrap;
@@ -1110,8 +1110,8 @@ function buildComplianceTable(smiles: string): InsertableTable | null {
     const v = base[k];
     if (typeof v === 'boolean') rows.push(['Base', label, v ? 'Yes' : 'No']);
   }
-  if (typeof base['faves_flag_count'] === 'number') {
-    rows.push(['Base', 'Flag count', String(base['faves_flag_count'])]);
+  if (typeof base['compliance_flag_count'] === 'number') {
+    rows.push(['Base', 'Flag count', String(base['compliance_flag_count'])]);
   }
 
   const recs = result['recommendations'];

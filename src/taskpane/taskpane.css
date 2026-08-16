@@ -593,12 +593,12 @@ dl.props-grid dd {
   line-height: 1.5;
 }
 .compliance-recs li { padding: 2px 0; overflow-wrap: anywhere; }
-.faves-dims {
+.compliance-dims {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
-.faves-dim {
+.compliance-dim {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -609,13 +609,13 @@ dl.props-grid dd {
   font-size: 12px;
   min-width: 0;
 }
-.faves-dim .faves-name {
+.compliance-dim .compliance-name {
   color: var(--text);
   overflow-wrap: anywhere;
   flex: 1;
   min-width: 0;
 }
-.faves-dim .badge { flex-shrink: 0; }
+.compliance-dim .badge { flex-shrink: 0; }
 .kv-array { display: flex; flex-direction: column; gap: 6px; }
 .kv-array-item {
   padding: 6px 8px;
