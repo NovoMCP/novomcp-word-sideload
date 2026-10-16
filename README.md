@@ -4,7 +4,7 @@ Molecular intelligence for Word — configurable engine URL, manifest sideload d
 
 This is the **sideload/OSS variant** of the NovoMCP Word add-in. It differs from the [production build](https://github.com/novomcp/novomcp-word-addin) in three ways:
 
-1. **Configurable engine URL** — defaults to `http://localhost:8018` (your local NovoMCP engine); the taskpane's "Engine URL" setting points it at a DGX Spark on your network (via the dev-server proxy) or any self-hosted deployment. Persisted across sessions via `Office.context.roamingSettings`.
+1. **Configurable engine URL** — defaults to `http://localhost:8018` (your local NovoMCP engine); the taskpane's "Engine URL" setting points it at a DGX Spark on your network (via the dev-server proxy) or any self-hosted deployment. Persisted across sessions in the taskpane's `localStorage`.
 2. **Engine proxy for other machines** — the dev server proxies `https://localhost:3000/engine` to `NOVOMCP_ENGINE_URL`, so a plain-http engine on the LAN is reachable without mixed-content blocking. (`<AppDomains>` also lists `localhost` / `127.0.0.1`; that governs taskpane navigation, not engine calls.)
 3. **No Office Store submission** — sideload the manifest directly via `office-addin-debugging start`. Runs from a local dev server (self-signed cert via `office-addin-dev-certs`). No AppSource review, no CDN, no store account.
 

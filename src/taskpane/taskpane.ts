@@ -18,7 +18,7 @@ import {
   predictPka, predictSolubility, predictBde, predictFrontierOrbitals,
   ApiError$,
 } from '../lib/api';
-import { getApiBase } from '../lib/constants';
+import { getApiBase, setApiBase } from '../lib/constants';
 import { findSmilesCandidates, isLikelySmiles } from '../lib/smiles';
 import { readSelection, onSelectionChange, insertTableAtSelection, type InsertableTable } from '../lib/word';
 import { readAllTables, insertCellComment, type ParsedTable } from '../lib/tables';
@@ -136,17 +136,7 @@ async function handleConnect(event: Event): Promise<void> {
   const novoKey = ($<HTMLInputElement>('novo-key')).value.trim();
 
   // Persist engine URL first so probeKey targets the right engine.
-  const { STORAGE_KEYS, API_BASE_DEFAULT } = await import('../lib/constants');
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const settings = (globalThis as any).Office?.context?.roamingSettings;
-  if (settings) {
-    if (apiBase && apiBase !== API_BASE_DEFAULT) {
-      settings.set(STORAGE_KEYS.apiBase, apiBase);
-    } else {
-      settings.remove(STORAGE_KEYS.apiBase);
-    }
-    await new Promise<void>((resolve) => settings.saveAsync(() => resolve()));
-  }
+  setApiBase(apiBase);
 
   // The API key is optional. A self-hosted engine accepts any bearer token;
   // supply a key only if you point at an engine that requires auth (e.g. a
@@ -186,12 +176,7 @@ function handleSignOut(): void {
   auth.signOut();
   // Also clear the stored engine URL override so the next Connect starts
   // fresh from the default.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const settings = (globalThis as any).Office?.context?.roamingSettings;
-  if (settings) {
-    settings.remove('novo.apiBase');
-    try { settings.saveAsync(() => {}); } catch { /* ignore */ }
-  }
+  setApiBase(null);
   ($<HTMLInputElement>('novo-key')).value = '';
   ($<HTMLInputElement>('api-base')).value = 'http://localhost:8018';
   currentSmiles = null;

@@ -5,10 +5,11 @@
  * Differs from the production build (Office Store, addin.novomcp.com CDN,
  * points at api.novomcp.com) in three ways:
  *
- *   1. API_BASE resolves via getApiBase() at call time. Reads from
- *      Office.context.roamingSettings first (so the user's engine URL
- *      setting persists across sessions), falls back to a local engine
- *      at http://localhost:8018.
+ *   1. API_BASE resolves via getApiBase() at call time. Reads the user's
+ *      engine URL from localStorage (persists across documents and
+ *      sessions, like the rest of lib/storage.ts), falls back to a local
+ *      engine at http://localhost:8018. (Not Office.context.roamingSettings:
+ *      that's an Outlook-only API and is undefined in Word.)
  *   2. The taskpane fetches the engine directly. Plain-http engines on
  *      other machines (e.g. a DGX Spark on the LAN) are blocked as mixed
  *      content, so the dev server proxies https://localhost:3000/engine to
@@ -46,17 +47,15 @@ export const STORAGE_KEYS = {
 export const SMILES_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
 /**
- * Resolve the engine URL at call time. Reads Office.context.roamingSettings
- * first (persists across Word sessions on this device), falls back to
- * API_BASE_DEFAULT. Handles the case where Office isn't available (unit
- * tests, dev preview) by returning the default. Trailing slashes are
+ * Resolve the engine URL at call time. Reads the user's setting from
+ * localStorage (per-origin, persists across Word documents and sessions),
+ * falls back to API_BASE_DEFAULT. Handles storage being unavailable (unit
+ * tests, private contexts) by returning the default. Trailing slashes are
  * stripped so ${base}${path} produces a clean URL.
  */
 export function getApiBase(): string {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const settings = (globalThis as any).Office?.context?.roamingSettings;
-    const stored = settings?.get?.(STORAGE_KEYS.apiBase);
+    const stored = localStorage.getItem(STORAGE_KEYS.apiBase);
     if (typeof stored === 'string' && stored.trim().length > 0) {
       return stored.trim().replace(/\/$/, '');
     }
@@ -64,4 +63,15 @@ export function getApiBase(): string {
     // fall through to default
   }
   return API_BASE_DEFAULT;
+}
+
+/** Persist the engine URL override; null, empty, or the default clears it. */
+export function setApiBase(base: string | null): void {
+  try {
+    const v = (base ?? '').trim();
+    if (!v || v === API_BASE_DEFAULT) localStorage.removeItem(STORAGE_KEYS.apiBase);
+    else localStorage.setItem(STORAGE_KEYS.apiBase, v);
+  } catch {
+    // storage unavailable: getApiBase() falls back to the default
+  }
 }
