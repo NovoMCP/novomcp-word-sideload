@@ -25,6 +25,26 @@ function readDevCerts(): { key?: Buffer; cert?: Buffer } {
 
 const devCerts = readDevCerts();
 
+/**
+ * Same-origin engine proxy: https://localhost:3000/engine/* → NOVOMCP_ENGINE_URL.
+ *
+ * The taskpane is an HTTPS page, so Word's webview blocks plain-http fetches
+ * to anything but localhost as mixed content — an engine on another machine
+ * (e.g. a DGX Spark at http://spark-xxxx.local:8018) is unreachable directly.
+ * Routing through the dev server makes those calls same-origin over HTTPS:
+ *
+ *   NOVOMCP_ENGINE_URL=http://spark-xxxx.local:8018 npm run dev
+ *
+ * then set the taskpane's Engine URL to https://localhost:3000/engine.
+ */
+const engineProxy = {
+  '/engine': {
+    target: process.env['NOVOMCP_ENGINE_URL'] || 'http://localhost:8018',
+    changeOrigin: true,
+    rewrite: (path: string) => path.replace(/^\/engine/, ''),
+  },
+};
+
 export default defineConfig({
   root,
   publicDir: 'assets',
@@ -44,5 +64,6 @@ export default defineConfig({
     port: 3000,
     strictPort: true,
     https: devCerts.cert ? devCerts : undefined,
+    proxy: engineProxy,
   },
 });

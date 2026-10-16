@@ -7,9 +7,13 @@
  *
  *   1. API_BASE resolves via getApiBase() at call time. Reads from
  *      Office.context.roamingSettings first (so the user's engine URL
- *      setting persists across sessions), falls back to the hosted API.
- *   2. manifest.xml AppDomains include http://localhost:8018 so a local
- *      NovoMCP engine is reachable from the taskpane.
+ *      setting persists across sessions), falls back to a local engine
+ *      at http://localhost:8018.
+ *   2. The taskpane fetches the engine directly. Plain-http engines on
+ *      other machines (e.g. a DGX Spark on the LAN) are blocked as mixed
+ *      content, so the dev server proxies https://localhost:3000/engine to
+ *      NOVOMCP_ENGINE_URL (see vite.config.ts). AppDomains govern taskpane
+ *      navigation, not fetch.
  *   3. SourceLocation resolves to the local dev server (office-addin-
  *      debugging start) instead of the CDN. Users sideload the manifest
  *      directly from this repo — no Office Store submission.
@@ -18,7 +22,7 @@
  * namespaces per-surface sessions for the audit log.
  */
 export const SURFACE_TAG = 'word-addin-sideload-v1';
-export const UA_PREFIX = 'NovoMCP-WordAddin-Sideload/0.1.0';
+export const UA_PREFIX = 'NovoMCP-WordAddin-Sideload/0.2.0';
 
 // Default engine URL — used when the user hasn't set a custom one.
 // Defaults to a local self-hosted engine; point at a hosted engine (with a

@@ -4,8 +4,8 @@ Molecular intelligence for Word — configurable engine URL, manifest sideload d
 
 This is the **sideload/OSS variant** of the NovoMCP Word add-in. It differs from the [production build](https://github.com/novomcp/novomcp-word-addin) in three ways:
 
-1. **Configurable engine URL** — defaults to `https://api.novomcp.com`, but the taskpane surfaces an "Engine URL" setting so you can point at `http://localhost:8018` (your local NovoMCP OSS engine) or any self-hosted deployment. Persisted across sessions via `Office.context.roamingSettings`.
-2. **`localhost` in `<AppDomains>`** — the manifest whitelists `http://localhost`, `https://localhost`, and `http://127.0.0.1` so the taskpane can reach a local engine.
+1. **Configurable engine URL** — defaults to `http://localhost:8018` (your local NovoMCP engine); the taskpane's "Engine URL" setting points it at a DGX Spark on your network (via the dev-server proxy) or any self-hosted deployment. Persisted across sessions via `Office.context.roamingSettings`.
+2. **Engine proxy for other machines** — the dev server proxies `https://localhost:3000/engine` to `NOVOMCP_ENGINE_URL`, so a plain-http engine on the LAN is reachable without mixed-content blocking. (`<AppDomains>` also lists `localhost` / `127.0.0.1`; that governs taskpane navigation, not engine calls.)
 3. **No Office Store submission** — sideload the manifest directly via `office-addin-debugging start`. Runs from a local dev server (self-signed cert via `office-addin-dev-certs`). No AppSource review, no CDN, no store account.
 
 ## Install
@@ -46,24 +46,25 @@ Word will then find both the manifest AND the taskpane HTML. Skip step 4 and you
 
 ## Configure
 
-The taskpane opens on the **Connect your account** screen. Three paths:
+The taskpane opens on the **Connect your account** screen. Leave the API key blank for a single-user engine (`LocalAuthGate` accepts any bearer token).
 
-**Option A — talk to your local OSS engine:**
-1. Start the engine locally (from the [OSS repo](https://github.com/novomcp/novomcp)): `python main_https.py`
-2. Expand **Self-hosted or local NovoMCP engine (advanced)**
-3. Set **Engine URL** to `http://localhost:8018`
-4. Leave the API key blank (or type any string — `LocalAuthGate` accepts any bearer token)
-5. Click **Connect**
+**Option A — an engine on this machine:**
+1. Start the engine (from the [engine repo](https://github.com/novomcp/novomcp)): `docker compose up -d` — see the [quickstart](https://docs.novomcp.com/quickstart/)
+2. Leave **Engine URL** at the default, `http://localhost:8018`
+3. Click **Connect**
 
-**Option B — talk to the hosted API:**
-1. Sign up at [app.novomcp.com/signup](https://app.novomcp.com/signup)
-2. Copy your `nmcp_*` key from [app.novomcp.com/keys](https://app.novomcp.com/keys)
-3. Paste into the taskpane's **Novo API key** field
+**Option B — a DGX Spark (or any plain-http engine) on your network:**
+
+The taskpane is an HTTPS page, so Word blocks plain-http calls to any machine other than localhost (mixed content). The add-in's dev server proxies `https://localhost:3000/engine` to the engine instead:
+
+1. Bring the engine up on the Spark: [Run the whole engine on an NVIDIA DGX Spark](https://docs.novomcp.com/novo-station-dgx-spark/) (`docker compose -f compose.spark.yml up -d`)
+2. Start the add-in's dev server pointed at it: `NOVOMCP_ENGINE_URL=http://spark-xxxx.local:8018 npm run dev` (keep it running, as with `npm run start`)
+3. Set **Engine URL** to `https://localhost:3000/engine`
 4. Click **Connect**
 
-**Option C — talk to your own self-hosted engine:**
-1. Set **Engine URL** to your engine's public URL (e.g. `https://novomcp.your-lab.edu`)
-2. Paste any API key your engine expects
+**Option C — a self-hosted engine behind HTTPS:**
+1. Set **Engine URL** to your engine's URL (e.g. `https://novomcp.your-lab.edu`)
+2. Paste any API key your engine expects (or leave blank for `LocalAuthGate`)
 3. Click **Connect**
 
 Engine URL persists across Word sessions on this device.
@@ -102,6 +103,7 @@ Restart Word after installing the cert.
 **Taskpane loads but "Cannot connect to NovoMCP engine":**
 - Confirm the engine URL you set is reachable from your browser
 - Local engine: `curl http://localhost:8018/health` should return `{"status":"healthy",...}`
+- Engine on another machine: use the `/engine` proxy (Option B) — a direct `http://<host>:8018` Engine URL is blocked by Word as mixed content. Check the proxy with `curl -k https://localhost:3000/engine/health`
 
 ## What's the same as the production build?
 
@@ -113,16 +115,16 @@ Everything user-visible: SMILES detection, taskpane UI, tool catalog, funnel/aud
 |---|---|---|
 | Distribution | Office Store / AppSource | Manifest sideload (`office-addin-debugging`) |
 | Hosting | `addin.novomcp.com` CDN | `https://localhost:3000` (dev server) |
-| Engine URL | Hardcoded `https://api.novomcp.com` | Configurable, defaults to hosted |
+| Engine URL | Hardcoded `https://api.novomcp.com` | Configurable, defaults to `http://localhost:8018` |
 | `<AppDomains>` | Production hosts only | + `http://localhost` + `http://127.0.0.1` |
 | Manifest `<Id>` | Locked production GUID | Fresh sideload-only GUID (coexists with production) |
 | DisplayName | "NovoMCP" | "NovoMCP (Sideload)" |
-| API key required? | Yes (`nmcp_*` for hosted API) | Optional (blank works for local engine) |
+| API key required? | Yes (`nmcp_*` for hosted API) | Optional (blank works for a single-user engine) |
 
 ## Support
 
 - **NovoMCP OSS engine:** https://github.com/novomcp/novomcp
-- **Docs:** https://github.com/novomcp/novomcp/tree/main/docs
+- **Docs:** https://docs.novomcp.com/
 - **Issues:** file against this repo for add-in bugs, against `novomcp/novomcp` for engine bugs.
 
 ## License

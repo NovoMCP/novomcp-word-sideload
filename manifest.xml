@@ -11,8 +11,9 @@
     - GUID is a fresh sideload-only ID so it can coexist with the
       production add-in when both are installed
     - DisplayName suffixed with "(Sideload)" for clarity
-    - AppDomains includes http://localhost / http://127.0.0.1 so a
-      local NovoMCP engine at :8018 is reachable from the taskpane
+    - AppDomains includes http://localhost / http://127.0.0.1 (taskpane
+      navigation); engine fetches to another machine go through the dev
+      server's /engine proxy (see vite.config.ts)
     - SourceLocation + Image + Url DefaultValues point at
       https://localhost:3000/ (the dev-server the sideload flow uses)
 -->
@@ -28,7 +29,7 @@
   <ProviderName>NovoMCP</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="NovoMCP (Sideload)" />
-  <Description DefaultValue="Molecular intelligence for Word — sideload build. Configurable engine URL (defaults to https://api.novomcp.com; point at http://localhost:8018 for local OSS use)." />
+  <Description DefaultValue="Molecular intelligence for Word — sideload build. Configurable engine URL (defaults to http://localhost:8018; a DGX Spark or other engine on your network via the dev-server proxy)." />
   <IconUrl DefaultValue="https://localhost:3000/assets/icon-32.png" />
   <HighResolutionIconUrl DefaultValue="https://localhost:3000/assets/icon-64.png" />
   <SupportUrl DefaultValue="https://github.com/NovoMCP/novomcp-word-sideload/issues" />

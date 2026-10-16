@@ -1,9 +1,9 @@
 /**
- * Thin HTTPS client for api.novomcp.com.
+ * Thin HTTP client for the configured NovoMCP engine (see getApiBase()).
  *
  * Every request carries:
  *   - Authorization: Bearer <nmcp_ or ncmcp_ key>
- *   - X-Novo-Surface: word-addin-v1   → namespaces funnel_id + persists in audit row
+ *   - X-Novo-Surface: word-addin-sideload-v1   → namespaces funnel_id + persists in audit row
  *   - X-Novo-Client: NovoMCP-WordAddin/<v>  → diagnostic identifier
  *
  * Error handling follows the structured-error contract:

@@ -24,12 +24,12 @@
       <section id="state-onboarding" hidden>
         <h2>Connect to your engine</h2>
         <p class="muted">
-          Point at a local NovoMCP engine or a self-hosted deployment. See <a href="https://github.com/novomcp/novomcp" target="_blank" rel="noopener">novomcp/novomcp</a> to run one.
+          Point at a local NovoMCP engine, a DGX Spark on your network, or a self-hosted deployment. See the <a href="https://docs.novomcp.com/" target="_blank" rel="noopener">docs</a> to run one.
         </p>
         <form id="onboarding-form">
           <label for="api-base">Engine URL</label>
           <input id="api-base" type="url" autocomplete="off" spellcheck="false" value="http://localhost:8018" placeholder="http://localhost:8018" />
-          <small class="muted">Defaults to <code>http://localhost:8018</code>. Point at your own engine's URL if you self-host elsewhere.</small>
+          <small class="muted">Defaults to <code>http://localhost:8018</code>. For a plain-http engine on another machine (e.g. a DGX Spark), start the add-in with <code>NOVOMCP_ENGINE_URL=http://&lt;host&gt;:8018 npm run dev</code> and use <code>https://localhost:3000/engine</code> here.</small>
 
           <label for="novo-key">API key <span class="muted">(optional for local engines)</span></label>
           <input id="novo-key" type="password" autocomplete="off" spellcheck="false" placeholder="Leave blank for local engine" />
@@ -143,7 +143,7 @@
           <div class="tab-panel" id="panel-advanced" role="tabpanel">
             <div id="advanced-locked" class="gate-locked" hidden>
               <div class="display">Compute services not configured</div>
-              <p>Configure <code>NOVOMCP_QM_URL</code>, <code>NOVOMCP_PROPERTIES_URL</code>, and related compute service URLs on your engine to enable pKa, solubility, BDE, and frontier-orbital predictions. See <a href="https://github.com/novomcp/novomcp/tree/main/docs/deploying-services" target="_blank" rel="noopener">docs/deploying-services</a>.</p>
+              <p>Configure <code>NOVOMCP_QM_URL</code>, <code>NOVOMCP_PROPERTIES_URL</code>, and related compute service URLs on your engine to enable pKa, solubility, BDE, and frontier-orbital predictions. See <a href="https://docs.novomcp.com/deploying-services/" target="_blank" rel="noopener">Deploying services</a>.</p>
             </div>
             <div id="advanced-tools" hidden>
               <p class="muted" style="font-size: 11px; margin-bottom: 4px;">Sync compute against the current molecule. Each call lands on this funnel.</p>
@@ -206,7 +206,7 @@
         <span aria-hidden="true">·</span>
         <a href="https://github.com/novomcp/novomcp-word-sideload" target="_blank" rel="noopener">Add-in source</a>
         <span aria-hidden="true">·</span>
-        <a href="https://github.com/novomcp/novomcp/tree/main/docs" target="_blank" rel="noopener">Docs</a>
+        <a href="https://docs.novomcp.com/" target="_blank" rel="noopener">Docs</a>
       </footer>
     </main>
 
