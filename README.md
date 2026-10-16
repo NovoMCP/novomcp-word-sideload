@@ -16,20 +16,26 @@ Prerequisites: Node 18+, Word desktop (macOS 16.86+ / Windows M365).
 git clone https://github.com/novomcp/novomcp-word-sideload.git
 cd novomcp-word-sideload
 npm install
+npx office-addin-dev-certs install   # first run only: trusts a self-signed cert for localhost:3000 (you may be prompted)
+```
+
+Then use two terminals:
+
+```bash
+# Terminal 1: writes dist/manifest.xml, then serves the taskpane on https://localhost:3000
+npm run dev
+
+# Terminal 2: sideloads dist/manifest.xml into Word and launches Word
 npm run start
 ```
 
-`npm run start` runs `office-addin-debugging`, which:
-1. Installs a self-signed cert for `localhost:3000` (first run only — you may be prompted)
-2. Boots the Vite dev server on `https://localhost:3000` — **this serves the taskpane HTML that Word loads**
-3. Sideloads the manifest into Word
-4. Launches Word with the add-in loaded
+`npm run start` runs `office-addin-debugging start dist/manifest.xml`. It only sideloads the manifest and launches Word. It does **not** install the cert, start the dev server, or build anything, so `npm run dev` (or `npm run build`) must have written `dist/manifest.xml` first.
 
 Once Word opens: **Home → NovoMCP → Open NovoMCP**. The taskpane appears.
 
 If Word doesn't launch automatically (macOS quirk), open Word manually and use **Insert → My Add-ins → Shared Folder** to select the sideloaded manifest.
 
-> **IMPORTANT: `npm run start` must stay running.** The taskpane is served from the local dev server at `https://localhost:3000`. If you close the terminal running `npm run start`, the next time you click **Open NovoMCP** in Word you'll get an **"Add-in Error / Sorry, we can't load the add-in. Please make sure you have network and/or Internet connectivity"** message. Restart the dev server (or run `npm run start` again) to fix.
+> **IMPORTANT: `npm run dev` must stay running.** The taskpane is served from the Vite dev server at `https://localhost:3000`. If you close the terminal running `npm run dev`, the next time you click **Open NovoMCP** in Word you'll get an **"Add-in Error / Sorry, we can't load the add-in. Please make sure you have network and/or Internet connectivity"** message. Restart `npm run dev` to fix.
 >
 > This is not a bug in the extension — it's how Office add-ins work. The manifest references an HTTPS URL for the taskpane HTML; that URL must be reachable whenever the taskpane is open.
 
@@ -58,7 +64,7 @@ The taskpane opens on the **Connect your account** screen. Leave the API key bla
 The taskpane is an HTTPS page, so Word blocks plain-http calls to any machine other than localhost (mixed content). The add-in's dev server proxies `https://localhost:3000/engine` to the engine instead:
 
 1. Bring the engine up on the Spark: [Run the whole engine on an NVIDIA DGX Spark](https://docs.novomcp.com/novo-station-dgx-spark/) (`docker compose -f compose.spark.yml up -d`)
-2. Start the add-in's dev server pointed at it: `NOVOMCP_ENGINE_URL=http://spark-xxxx.local:8018 npm run dev` (keep it running, as with `npm run start`)
+2. Start the add-in's dev server pointed at it: `NOVOMCP_ENGINE_URL=http://spark-xxxx.local:8018 npm run dev` (it serves the taskpane too, so keep it running)
 3. Set **Engine URL** to `https://localhost:3000/engine`
 4. Click **Connect**
 
@@ -83,7 +89,7 @@ npm run dev              # vite dev server only (no Word sideload)
 npm run typecheck        # tsc --noEmit
 npm run build            # production build into dist/
 npm run validate-manifest # sanity-check manifest.xml against Office schema
-npm run start            # build + sideload + launch Word
+npm run start            # sideload dist/manifest.xml + launch Word (run `npm run dev` first)
 npm run stop             # stop the sideload session
 npm run package          # build + zip dist/ (for sharing)
 ```
