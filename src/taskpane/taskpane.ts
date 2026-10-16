@@ -5,7 +5,7 @@
  *   - SMILES sourced from the host (Word selection here, page DOM there)
  *   - Profile renders eagerly from get_molecule_profile
  *   - ADMET / Compliance lazy-load on tab switch (cached per SMILES)
- *   - Similar runs explicitly via "Search neighbors" button (5 credits)
+ *   - Similar runs explicitly via "Search neighbors" button
  *   - Advanced gates on a Compute key; 4 sync tools with friendly errors
  *   - Cross-surface CTAs (dashboard deep-link + AI-assistant copy-prompt)
  *     bind to the funnel_id captured from the latest tool response.
@@ -61,16 +61,31 @@ function isLocalEngineUrl(url: string): boolean {
   return /^https?:\/\/(localhost|127\.0\.0\.1)/i.test(url);
 }
 
+/** Engine reached through the dev server's /engine proxy (see vite.config.ts). */
+function isProxiedEngineUrl(url: string): boolean {
+  return /^https:\/\/(localhost|127\.0\.0\.1):3000\/engine$/i.test(url);
+}
+
+/**
+ * The taskpane is served over HTTPS, so Word's webview blocks plain-http
+ * fetches to any host but localhost (mixed content) — e.g. a DGX Spark at
+ * http://spark-xxxx.local:8018. Those need the dev-server proxy.
+ */
+function isBlockedPlainHttpUrl(url: string): boolean {
+  return /^http:\/\//i.test(url) && !isLocalEngineUrl(url);
+}
+
 function renderConnected(_user: NovoUser | null): void {
   // Sideload build: connected state shows Engine URL + Mode (local /
-  // hosted). The hosted-product fields (email, tier, credits, compute-key
-  // status) don't apply in local single-user mode.
+  // self-hosted). The hosted-product fields (email, tier, credits,
+  // compute-key status) don't apply to a self-hosted engine.
   const base = getApiBase();
-  const local = isLocalEngineUrl(base);
   $<HTMLElement>('user-engine').textContent = base;
-  $<HTMLElement>('user-mode').innerHTML = local
-    ? '<span class="badge ok">local single-user</span>'
-    : '<span class="badge">hosted / self-hosted</span>';
+  $<HTMLElement>('user-mode').innerHTML = isProxiedEngineUrl(base)
+    ? '<span class="badge ok">self-hosted (via dev-server proxy)</span>'
+    : isLocalEngineUrl(base)
+      ? '<span class="badge ok">local single-user</span>'
+      : '<span class="badge">self-hosted</span>';
 
   show('connected');
 
@@ -96,6 +111,12 @@ async function bootstrap(): Promise<void> {
     auth.setUser(user);
     renderConnected(user);
   } catch (err) {
+    // Self-hosted engines don't return a standard NovoUser; any non-401
+    // response means "engine reachable, connected."
+    if (err instanceof ApiError$ && !err.isUnauthorized) {
+      renderConnected(null);
+      return;
+    }
     if (err instanceof ApiError$ && err.isUnauthorized) {
       auth.signOut();
       show('onboarding');
@@ -127,7 +148,6 @@ async function handleConnect(event: Event): Promise<void> {
     await new Promise<void>((resolve) => settings.saveAsync(() => resolve()));
   }
 
-  const local = isLocalEngineUrl(apiBase);
   // The API key is optional. A self-hosted engine accepts any bearer token;
   // supply a key only if you point at an engine that requires auth (e.g. a
   // compliance service).
@@ -141,10 +161,10 @@ async function handleConnect(event: Event): Promise<void> {
     auth.setUser(user);
     renderConnected(user);
   } catch (err) {
-    // Local engines return a shape probeKey doesn't recognize — but if the
-    // engine responded at all, treat it as connected. Only reject on 401
-    // (bad key on hosted API) or network failure.
-    if (local && err instanceof ApiError$ && !err.isUnauthorized) {
+    // Self-hosted engines (local, LAN, or proxied) return a shape probeKey
+    // doesn't recognize — but if the engine responded at all, treat it as
+    // connected. Only reject on 401 (engine requires a key) or network failure.
+    if (err instanceof ApiError$ && !err.isUnauthorized) {
       auth.setNovoKey(effectiveKey);
       renderConnected(null);
       return;
@@ -153,7 +173,9 @@ async function handleConnect(event: Event): Promise<void> {
       ? 'Key rejected. Check the key and engine URL.'
       : err instanceof ApiError$
         ? `Could not connect (${err.status}): ${err.message}`
-        : 'Network error. Is the engine running at that URL?';
+        : isBlockedPlainHttpUrl(apiBase)
+          ? 'Word blocks plain-http engines on other machines. Start the add-in with NOVOMCP_ENGINE_URL set to this address (NOVOMCP_ENGINE_URL=' + apiBase + ' npm run dev) and use https://localhost:3000/engine as the Engine URL.'
+          : 'Network error. Is the engine running at that URL?';
     showError(msg);
   } finally {
     btn.disabled = false; btn.textContent = 'Connect';
@@ -806,7 +828,7 @@ function friendlyComputeError(tool: ComputeTool, raw: string): string {
   if (status && status >= 500) return `${label} service is temporarily unavailable. Try again in a moment.`;
   if (status === 422 || status === 400) return `${label} couldn't process this molecule. Try a different scaffold.`;
   if (status === 401) return `${label} requires authentication — add an API key if your engine needs one.`;
-  if (status === 402) return `${label} isn't available on this engine — wire the compute service (see docs/deploying-services).`;
+  if (status === 402) return `${label} isn't available on this engine — wire the compute service (see docs.novomcp.com/deploying-services).`;
   if (status === 429) return `${label} is rate-limited right now. Try again shortly.`;
   const trimmed = raw.length > 140 ? raw.slice(0, 140) + '…' : raw;
   return `${label}: ${trimmed}`;
@@ -1267,7 +1289,7 @@ async function runScan(): Promise<void> {
   });
 
   // Collect every distinct SMILES across all detected schemas. Dedupe to
-  // avoid paying credits twice for the same molecule appearing in
+  // avoid running the same molecule twice when it appears in
   // multiple tables.
   const smilesToFetch = new Set<string>();
   for (const w of work) {

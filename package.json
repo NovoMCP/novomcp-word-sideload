@@ -1,6 +1,6 @@
 {
   "name": "novomcp-word-sideload",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "NovoMCP Word add-in (sideload) — configurable engine URL, manifest-sideload distribution. Drop molecular intelligence into Word documents; ADMET / compliance / compute lookups for SMILES in your manuscript.",
   "private": true,
   "type": "module",
