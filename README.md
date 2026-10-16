@@ -16,8 +16,24 @@ Prerequisites: Node 18+, Word desktop (macOS 16.86+ / Windows M365).
 git clone https://github.com/novomcp/novomcp-word-sideload.git
 cd novomcp-word-sideload
 npm install
-npx office-addin-dev-certs install   # first run only: trusts a self-signed cert for localhost:3000 (you may be prompted)
 ```
+
+### Before you start: trust a local HTTPS certificate (once per machine)
+
+Word only loads add-ins over HTTPS, and this sideload serves its taskpane from your own machine at `https://localhost:3000`. So **every user needs a locally trusted development certificate, once per computer**:
+
+```bash
+npx office-addin-dev-certs install --days 365
+```
+
+- It creates a certificate authority **on your machine only** and trusts it in your keychain (macOS) or certificate store (Windows). You'll be asked for your password. The CA only vouches for `localhost` on your own computer, so it isn't shared and can't be shared. Each user and each machine runs this once.
+- **It expires.** The tool's default is **30 days**; `--days 365` gives a year. When it lapses, Word shows *"The content is blocked because it isn't signed by a valid security certificate"*. See [Sideload troubleshooting](#sideload-troubleshooting) for the one-line fix.
+- Check it at any time: `npx office-addin-dev-certs verify`.
+- The Office Store version of the add-in doesn't need this. It loads from a hosted HTTPS address with a public certificate.
+
+Full guide (both add-ins, remote engines, troubleshooting): [docs.novomcp.com/sideload-add-ins](https://docs.novomcp.com/sideload-add-ins/).
+
+### Run it
 
 Then use two terminals:
 
@@ -96,11 +112,17 @@ npm run package          # build + zip dist/ (for sharing)
 
 ## Sideload troubleshooting
 
-**"Certificate not trusted" error:**
+**"The content is blocked because it isn't signed by a valid security certificate"** (or "Certificate not trusted"):
+
+The local dev certificate is missing, untrusted, or **expired** (the default lifetime is 30 days). Check the expiry date:
 ```bash
-npx office-addin-dev-certs install
+openssl x509 -in ~/.office-addin-dev-certs/localhost.crt -noout -enddate
 ```
-Restart Word after installing the cert.
+Replace it with a fresh one (asks for your password):
+```bash
+npx office-addin-dev-certs uninstall && npx office-addin-dev-certs install --days 365
+```
+Then restart `npm run dev`, which only reads the certificate at startup, and click **Restart** in Word's add-in pane (or reopen Word).
 
 **Word can't reach `https://localhost:3000`:**
 - Confirm the dev server is running (`curl -k https://localhost:3000/taskpane.html`)
