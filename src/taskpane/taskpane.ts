@@ -6,7 +6,8 @@
  *   - Profile renders eagerly from get_molecule_profile
  *   - ADMET / Compliance lazy-load on tab switch (cached per SMILES)
  *   - Similar runs explicitly via "Search neighbors" button
- *   - Advanced gates on a Compute key; 4 sync tools with friendly errors
+ *   - Advanced: 4 sync tools run on the engine; a tool whose service isn't
+ *     set up reports it per card
  *   - Cross-surface CTAs (dashboard deep-link + AI-assistant copy-prompt)
  *     bind to the funnel_id captured from the latest tool response.
  */
@@ -99,7 +100,6 @@ function renderConnected(_user: NovoUser | null): void {
     selectionWired = true;
     void refreshFromCurrentSelection();
   }
-  void refreshAdvancedGate();
 }
 
 async function bootstrap(): Promise<void> {
@@ -365,7 +365,6 @@ function switchTab(name: string): void {
     if (name === 'admet') void ensureAdmetLoaded(currentSmiles);
     else if (name === 'compliance') void ensureComplianceLoaded(currentSmiles);
   }
-  if (name === 'advanced') void refreshAdvancedGate();
 }
 
 // ─── ADMET tab ─────────────────────────────────────────────────────────
@@ -729,21 +728,6 @@ const TOOL_FN: Record<ComputeTool, (smiles: string) => Promise<ApiResponse<unkno
   predict_frontier_orbitals: predictFrontierOrbitals,
 };
 
-async function refreshAdvancedGate(): Promise<void> {
-  // Sideload build: always show the advanced tools. If the engine doesn't
-  // have NOVOMCP_QM_URL / NOVOMCP_PROPERTIES_URL wired, individual tool
-  // calls return structured 503 responses; the per-card error UX handles
-  // that gracefully. No gate at the tab level — users can see what's
-  // available and hit a clear "compute service not configured" error
-  // if they try to use one that isn't wired.
-  const lock = $<HTMLElement>('advanced-lock');
-  const locked = $<HTMLElement>('advanced-locked');
-  const tools = $<HTMLElement>('advanced-tools');
-  lock.hidden = true;
-  locked.hidden = true;
-  tools.hidden = false;
-}
-
 function setupAdvancedHandlers(): void {
   document.querySelectorAll<HTMLElement>('.compute-card').forEach((card) => {
     const tool = card.dataset['tool'] as ComputeTool;
@@ -793,6 +777,12 @@ async function runComputeTool(tool: ComputeTool, card: HTMLElement): Promise<voi
 
 function friendlyComputeError(tool: ComputeTool, raw: string): string {
   const label = TOOL_LABEL[tool] ?? 'Calculation';
+  // The engine reports a missing backing service as service_not_configured
+  // (or "... not configured" from the service it proxies). Say what to enable;
+  // on a self-hosted engine the user is the operator, so setup hints are kept.
+  if (/service_not_configured|not configured/i.test(raw)) {
+    return `${label} isn't set up on your engine. It needs the novomcp-properties service (set NOVOMCP_PROPERTIES_URL); see docs.novomcp.com/deploying-services/novomcp-properties.`;
+  }
   const codeMatch = raw.match(/\((\d{3})\)/);
   const status = codeMatch ? Number(codeMatch[1]) : null;
   let detail = '';
@@ -806,14 +796,13 @@ function friendlyComputeError(tool: ComputeTool, raw: string): string {
     } catch {}
   }
   if (detail) {
-    detail = detail.replace(/[—-]\s*check\s+\w+_URL\s+configuration[\s\S]*$/i, '').trim();
     detail = detail.replace(/for:\s*[A-Za-z0-9@+\-\[\]()=#$/\\.]{20,}/, 'for this molecule');
     if (detail) return detail;
   }
   if (status && status >= 500) return `${label} service is temporarily unavailable. Try again in a moment.`;
   if (status === 422 || status === 400) return `${label} couldn't process this molecule. Try a different scaffold.`;
   if (status === 401) return `${label} requires authentication — add an API key if your engine needs one.`;
-  if (status === 402) return `${label} isn't available on this engine — wire the compute service (see docs.novomcp.com/deploying-services).`;
+  if (status === 402) return `${label} isn't available on this engine. See docs.novomcp.com/deploying-services.`;
   if (status === 429) return `${label} is rate-limited right now. Try again shortly.`;
   const trimmed = raw.length > 140 ? raw.slice(0, 140) + '…' : raw;
   return `${label}: ${trimmed}`;
